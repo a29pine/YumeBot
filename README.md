@@ -1,7 +1,5 @@
 # Yume - Korean Learning Bot
 
-Simple Discord bot to interactively configure a welcome message per-server.
-
 Setup
 
 1. Copy `.env.example` to `.env` and fill `TOKEN` and `CLIENT_ID`. Optionally set `GUILD_ID` to register the slash command quickly to a guild for testing.
