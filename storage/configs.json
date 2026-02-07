@@ -1,0 +1,14 @@
+{
+  "1363274006521708654": {
+    "enabled": true,
+    "channelId": "1469698663784648888",
+    "embed": {
+      "title": "Welcome to the server!",
+      "description": "Test test test",
+      "color": "#239393"
+    },
+    "sendImage": false,
+    "imageUrl": "",
+    "interval_minutes": 1
+  }
+}
