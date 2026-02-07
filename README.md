@@ -24,10 +24,6 @@ npm run deploy-commands
 npm start
 ```
 
-Usage
-
-- Run `/welcome-setup` in a server where the bot is present. An ephemeral interactive menu will appear allowing you to select a channel, configure embed content (title, description, color, image URL), preview, and save. After saving, the bot will send the configured welcome embed when new members join.
-
 Notes
 
 - The bot requires the `Guild Members` intent to receive join events. Enable it in the Developer Portal if necessary.
