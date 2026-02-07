@@ -1,4 +1,4 @@
-# Discord Welcome Bot
+# Yume - Korean Learning Bot
 
 Simple Discord bot to interactively configure a welcome message per-server.
 
