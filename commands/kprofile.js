@@ -26,19 +26,19 @@ export default {
       if (!sub) {
         return await interaction.reply({ content: 'Please specify a subcommand: `view` or `edit`.', ephemeral: true });
       }
-      console.log('kprofile invoked', { sub, guild: interaction.guildId, user: interaction.user?.id });
-
       if (sub === 'view') {
-        const user = interaction.options.getUser('user') || interaction.user;
-        const row = await gameService.getProfile(interaction.guildId, user.id);
+        const viewedUser = interaction.options.getUser('user') || interaction.user;
+        const viewedUserId = viewedUser.id;
+        const viewedUserTag = viewedUser.tag;
+        const viewedUserAvatar = viewedUser.displayAvatarURL({ extension: 'png', size: 128 });
+        const viewedUserAvatarLarge = viewedUser.displayAvatarURL({ extension: 'png', size: 256 });
+        const row = await gameService.getProfile(interaction.guildId, viewedUserId);
         if (!row) return await interaction.reply({ content: 'No stats for that user.', ephemeral: true });
-
-        const rank = await gameService.getRank(interaction.guildId, user.id);
+        const rank = await gameService.getRank(interaction.guildId, viewedUserId);
         const koreanLevelMap = { 0: 'Unspecified', 1: 'Beginner', 2: 'Intermediate', 3: 'Advanced', 4: 'Native' };
         const klevelLabel = koreanLevelMap[row.korean_level] || 'Unspecified';
         const xp = Number(row.xp || 0);
         const level = Number(row.level || 1);
-        // Calculate XP needed for next level (not based on Korean level)
         const nextLevel = level + 1;
         const nextThreshold = nextLevel * 100;
         const prevThreshold = level * 100;
@@ -50,40 +50,79 @@ export default {
           const empty = 10 - full;
           return '▰'.repeat(full) + '▱'.repeat(empty) + ` ${Math.round(p*100)}%`;
         })(progress);
-
-        // Display badges
         let badges = [];
         try { badges = JSON.parse(row.badges || '[]'); } catch {}
-        if (badges.length > 0) {
-          const badgeEmojis = badges.map(b => {
-            const badge = {
-              fast_thinker: '⏱️',
-              slang_king: '🗣️',
-              night_owl: '🌙',
-              unstoppable: '9️⃣'
-            }[b] || '🏅';
-            return badge;
-          }).join(' ');
-          embed.addFields({ name: 'Achievements', value: badgeEmojis });
-        }
-
-        const embed = new EmbedBuilder()
-          .setTitle(`${user.username}'s Korean Profile`)
-          .setAuthor({ name: user.tag, iconURL: user.displayAvatarURL({ extension: 'png', size: 128 }) })
-          .setThumbnail(user.displayAvatarURL({ extension: 'png', size: 256 }))
+        const badgeEmojis = badges.length > 0 ? badges.map(b => {
+          const badge = {
+            fast_thinker: '⏱️',
+            slang_king: '🗣️',
+            night_owl: '🌙',
+            unstoppable: '9️⃣'
+          }[b] || '🏅';
+          return badge;
+        }).join(' ') : 'No achievements yet.';
+        const { ActionRowBuilder, StringSelectMenuBuilder } = await import('discord.js');
+        const select = new StringSelectMenuBuilder()
+          .setCustomId(`profile_tab_select_${viewedUserId}`)
+          .setPlaceholder('Select a tab')
+          .addOptions([
+            { label: 'Stats', value: 'stats', description: 'View stats', emoji: '📊' },
+            { label: 'Achievements', value: 'achievements', description: 'View achievements', emoji: '🏅' },
+            { label: 'Activity', value: 'activity', description: 'View activity', emoji: '🔥' },
+            { label: 'Settings', value: 'settings', description: 'Edit profile', emoji: '⚙️' }
+          ]);
+        const rowMenu = new ActionRowBuilder().addComponents(select);
+        const statsEmbed = new EmbedBuilder()
+          .setTitle(`${viewedUser.username}'s Korean Profile — Stats`)
+          .setAuthor({ name: viewedUserTag, iconURL: viewedUserAvatar })
+          .setThumbnail(viewedUserAvatarLarge)
           .setColor('#5865F2')
           .setTimestamp()
           .addFields(
-            { name: 'Stats', value: `**XP:** ${xp}\n**Level:** ${level}\n**Rank:** ${rank ? String(rank) : '—'}`, inline: true },
-            { name: 'Activity', value: `**Streak:** ${row.streak || 0}\n**Total Correct:** ${row.total_correct || 0}`, inline: true },
-            { name: 'Korean Level', value: klevelLabel, inline: true }
-          )
-          .addFields({ name: 'Progress to next level', value: `${progressBar} (${progressRaw < 0 ? 0 : progressRaw}/${progressMax} XP)` });
-        if (row.bio) embed.addFields({ name: 'Bio', value: String(row.bio).slice(0, 1024) });
-        embed.setFooter({ text: `User ID: ${user.id}` });
-        return await interaction.reply({ embeds: [embed], ephemeral: false });
+            { name: 'XP', value: `${xp}`, inline: true },
+            { name: 'Level', value: `${level}`, inline: true },
+            { name: 'Rank', value: `${rank ? String(rank) : '—'}`, inline: true },
+            { name: 'Korean Level', value: klevelLabel, inline: true },
+            { name: 'Progress to next level', value: `${progressBar} (${progressRaw < 0 ? 0 : progressRaw}/${progressMax} XP)` },
+            { name: 'Bio', value: row.bio ? String(row.bio).slice(0, 1024) : 'No bio set.' }
+          );
+        statsEmbed.setFooter({ text: `User ID: ${viewedUserId}` });
+        const achievementsEmbed = new EmbedBuilder()
+          .setTitle(`${viewedUser.username}'s Achievements`)
+          .setColor('#FFD700')
+          .setTimestamp()
+          .addFields({ name: 'Achievements', value: badgeEmojis });
+        const activityEmbed = new EmbedBuilder()
+          .setTitle(`${viewedUser.username}'s Activity`)
+          .setColor('#57F287')
+          .setTimestamp()
+          .addFields(
+            { name: 'Streak', value: `${row.streak || 0}`, inline: true },
+            { name: 'Total Correct', value: `${row.total_correct || 0}`, inline: true }
+          );
+        const settingsEmbed = new EmbedBuilder()
+          .setTitle(`${viewedUser.username}'s Profile Settings`)
+          .setColor('#5865F2')
+          .setTimestamp()
+          .addFields(
+            { name: 'Korean Level', value: klevelLabel }
+          );
+        await interaction.reply({ embeds: [statsEmbed], components: [rowMenu], ephemeral: false });
+        const filter = i => i.customId === `profile_tab_select_${viewedUserId}` && i.user.id === interaction.user.id;
+        const collector = interaction.channel.createMessageComponentCollector({ filter, time: 60000 });
+        collector.on('collect', async i => {
+          let embed;
+          if (i.values[0] === 'stats') embed = statsEmbed;
+          else if (i.values[0] === 'achievements') embed = achievementsEmbed;
+          else if (i.values[0] === 'activity') embed = activityEmbed;
+          else if (i.values[0] === 'settings') embed = settingsEmbed;
+          await i.update({ embeds: [embed], components: [rowMenu] });
+        });
+        collector.on('end', async () => {
+          try { await interaction.editReply({ components: [] }); } catch {}
+        });
+        return;
       }
-
       if (sub === 'edit') {
         const bio = interaction.options.getString('bio');
         const korean_level = interaction.options.getString('korean_level');
@@ -92,7 +131,6 @@ export default {
         const uid = interaction.user.id;
         const row = db.prepare('SELECT * FROM users WHERE guild_id = ? AND user_id = ?').get(gid, uid);
         if (!row) {
-          // create default
           db.prepare('INSERT INTO users (guild_id, user_id, xp, level, streak, total_correct, last_correct_at, bio, korean_level) VALUES (?,?,?,?,?,?,?,?,?)')
             .run(gid, uid, 0, 1, 0, 0, 0, bio || '', korean_level_num || 0);
         } else {
