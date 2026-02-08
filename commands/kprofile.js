@@ -188,7 +188,7 @@ export default {
             await i.showModal({
               customId: 'modal_edit_color',
               title: 'Edit Embed Color',
-              components: [{ type: 1, components: [{ type: 4, customId: 'color_input', label: 'Embed Color (hex)', style: 1, minLength: 7, maxLength: 7, placeholder: '#5865F2', required: true }] }] });
+              components: [{ type: 1, components: [{ type: 4, customId: 'color_input', label: 'Embed Color (hex)', style: 1, minLength: 6, maxLength: 7, placeholder: '#5865F2 or 5865F2', required: true }] }] });
           } else if (i.customId === 'edit_badge') {
             await i.showModal({
               customId: 'modal_edit_badge',

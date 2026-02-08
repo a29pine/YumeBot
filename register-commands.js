@@ -26,6 +26,7 @@ import kwallet from './commands/kwallet.js';
 import kshop from './commands/kshop.js';
 import kinfo from './commands/kinfo.js';
 
+import kgive from './commands/kgive.js';
 const commands = [
   kstart.data.toJSON(),
   kstop.data.toJSON(),
@@ -40,6 +41,7 @@ const commands = [
   kwallet.data.toJSON(),
   kshop.data.toJSON(),
   kinfo.data.toJSON(),
+  kgive.data.toJSON(),
   (await import('./commands/kminigame.js')).default.data.toJSON(),
   (await import('./commands/kflagminigame.js')).default.data.toJSON(),
 ];

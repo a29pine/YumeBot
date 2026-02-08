@@ -177,8 +177,18 @@ async function execute(interaction) {
     const maxScore = Math.max(...Object.values(lobby.scores));
     const winners = Object.entries(lobby.scores).filter(([id, score]) => score === maxScore).map(([id]) => id);
     const winnerMentions = winners.map(id => `<@${id}>`).join(', ');
+    // Fetch usernames for all player IDs
+    const userNames = {};
+    for (const id of playerIds) {
+      try {
+        const user = await interaction.client.users.fetch(id);
+        userNames[id] = user ? user.username : id;
+      } catch {
+        userNames[id] = id;
+      }
+    }
     const fields = playerIds.map(id => ({
-      name: `🏅 <@${id}>`,
+      name: `🏅 ${userNames[id]}`,
       value: `**${lobby.scores[id]}** point${lobby.scores[id] === 1 ? '' : 's'}`,
       inline: true
     }));

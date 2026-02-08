@@ -113,10 +113,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
           field = 'Banner URL';
           updated = true;
         } else if (interaction.customId === 'modal_edit_color') {
-          value = interaction.fields.getTextInputValue('color_input');
-          // Validate hex color
+          value = interaction.fields.getTextInputValue('color_input').trim();
+          // Accept #RRGGBB or RRGGBB
+          if (/^[0-9A-Fa-f]{6}$/.test(value)) {
+            value = '#' + value;
+          }
           if (!/^#[0-9A-Fa-f]{6}$/.test(value)) {
-            await interaction.reply({ content: '❌ Invalid hex color. Please use format #RRGGBB.', ephemeral: true });
+            await interaction.reply({ content: '❌ Invalid hex color. Please use #RRGGBB or RRGGBB format.', ephemeral: true });
             return;
           }
           db.prepare('UPDATE users SET profile_color = ? WHERE guild_id = ? AND user_id = ?').run(value, gid, uid);
