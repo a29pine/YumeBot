@@ -52,6 +52,11 @@ db.prepare(`CREATE TABLE IF NOT EXISTS users (
   last_streak_day INTEGER DEFAULT 0,
   coins INTEGER DEFAULT 0,
   inventory TEXT DEFAULT '{}',
+  profile_banner TEXT DEFAULT '',
+  profile_color TEXT DEFAULT '#5865F2',
+  profile_font TEXT DEFAULT 'Default',
+  profile_badge TEXT DEFAULT 'None',
+  profile_social TEXT DEFAULT '',
   PRIMARY KEY (guild_id, user_id)
 )`).run();
 

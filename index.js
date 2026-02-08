@@ -90,8 +90,90 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
         return;
       }
+      // Handle modal submissions for kprofile edit
+      if (interaction.isModalSubmit && typeof interaction.isModalSubmit === 'function' ? interaction.isModalSubmit() : interaction.type === 5) {
+        const gid = interaction.guildId;
+        const uid = interaction.user.id;
+        let updated = false;
+        let field = '', value = '';
+        if (interaction.customId === 'modal_edit_bio') {
+          value = interaction.fields.getTextInputValue('bio_input');
+          db.prepare('UPDATE users SET bio = ? WHERE guild_id = ? AND user_id = ?').run(value, gid, uid);
+          field = 'Bio';
+          updated = true;
+        } else if (interaction.customId === 'modal_edit_klevel') {
+          value = interaction.fields.getTextInputValue('klevel_input');
+          const klevel = Math.max(1, Math.min(4, parseInt(value)));
+          db.prepare('UPDATE users SET korean_level = ? WHERE guild_id = ? AND user_id = ?').run(klevel, gid, uid);
+          field = 'Korean Level';
+          updated = true;
+        } else if (interaction.customId === 'modal_edit_banner') {
+          value = interaction.fields.getTextInputValue('banner_input');
+          db.prepare('UPDATE users SET profile_banner = ? WHERE guild_id = ? AND user_id = ?').run(value, gid, uid);
+          field = 'Banner URL';
+          updated = true;
+        } else if (interaction.customId === 'modal_edit_color') {
+          value = interaction.fields.getTextInputValue('color_input');
+          // Validate hex color
+          if (!/^#[0-9A-Fa-f]{6}$/.test(value)) {
+            await interaction.reply({ content: '❌ Invalid hex color. Please use format #RRGGBB.', ephemeral: true });
+            return;
+          }
+          db.prepare('UPDATE users SET profile_color = ? WHERE guild_id = ? AND user_id = ?').run(value, gid, uid);
+          field = 'Embed Color';
+          updated = true;
+        } else if (interaction.customId === 'modal_edit_font') {
+          value = interaction.fields.getTextInputValue('font_input');
+          db.prepare('UPDATE users SET profile_font = ? WHERE guild_id = ? AND user_id = ?').run(value, gid, uid);
+          field = 'Font Style';
+          updated = true;
+        } else if (interaction.customId === 'modal_edit_badge') {
+          value = interaction.fields.getTextInputValue('badge_input');
+          // Accept any emoji or string
+          db.prepare('UPDATE users SET profile_badge = ? WHERE guild_id = ? AND user_id = ?').run(value, gid, uid);
+          field = 'Badge';
+          updated = true;
+        } else if (interaction.customId === 'modal_edit_social') {
+          value = interaction.fields.getTextInputValue('social_input');
+          db.prepare('UPDATE users SET profile_social = ? WHERE guild_id = ? AND user_id = ?').run(value, gid, uid);
+          field = 'Social Link';
+          updated = true;
+        }
+        if (updated) {
+          // Fetch updated profile and show embed
+          const row = db.prepare('SELECT * FROM users WHERE guild_id = ? AND user_id = ?').get(gid, uid);
+          const koreanLevelMap = { 0: 'Unspecified', 1: 'Beginner', 2: 'Intermediate', 3: 'Advanced', 4: 'Native' };
+          const klevelLabel = koreanLevelMap[row?.korean_level] || 'Unspecified';
+          const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+          const embed = new EmbedBuilder()
+            .setTitle('Edit Your Profile')
+            .setColor(row?.profile_color || '#5865F2')
+            .setTimestamp()
+            .addFields(
+              { name: 'Bio', value: row?.bio ? String(row.bio).slice(0, 1024) : 'No bio set.' },
+              { name: 'Korean Level', value: klevelLabel },
+              { name: 'Banner URL', value: row?.profile_banner || 'No banner set.' },
+              { name: 'Embed Color', value: row?.profile_color || '#5865F2' }
+            );
+          if (row?.profile_banner && row.profile_banner.length > 5) embed.setImage(row.profile_banner);
+          const rowButtons = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('edit_bio').setLabel('Edit Bio').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('edit_klevel').setLabel('Edit Korean Level').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('edit_banner').setLabel('Edit Banner URL').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('edit_color').setLabel('Edit Embed Color').setStyle(ButtonStyle.Primary)
+          );
+          if (interaction.replied || interaction.deferred) {
+            await interaction.followUp({ content: `✅ ${field} updated!`, embeds: [embed], components: [rowButtons] });
+          } else {
+            await interaction.reply({ content: `✅ ${field} updated!`, embeds: [embed], components: [rowButtons] });
+          }
+        } else {
+          await interaction.reply({ content: 'Profile update failed.', ephemeral: true });
+        }
+        return;
+      }
     } catch (e) {
-      console.error('Component handling error', e);
+      console.error('Component/modal handling error', e);
     }
 
     // other interaction handling falls through to dynamic command modules
