@@ -1,77 +1,120 @@
+# Yume — Korean Learning Discord Bot 🇰🇷
 
+Yume is a Discord bot built to make learning Korean more interactive inside your server. It focuses on daily practice, light competition, and small game loops that keep people coming back.
 
-# Yume — Your Friendly Korean Learning Discord Bot 🇰🇷
-
-Welcome to Yume! This is a community-driven Discord bot designed to make learning Korean fun, social, and rewarding. Whether you’re a total beginner or a seasoned learner, Yume brings daily practice, games, and friendly competition right to your server.
-
----
-
-## 🌟 What Can Yume Do?
-
-- **Daily Korean Word Game:** Get a new word posted automatically in your server. Keep your streak going, earn XP, and level up as you play!
-- **Mini-Games:**
-  - `/kminigame` — Guess the Korean word for a random image. Great for visual learners!
-  - `/kflagminigame` — Compete to name country flags in Korean. Supports lobbies, custom settings, and placement-based scoring.
-- **Economy & Shop:** Earn coins for playing and spend them on hints, streak freezes, and more with `/kshop`.
-- **Profiles & Leaderboards:** Track your stats, streaks, and achievements. See how you stack up with `/kprofile` and `/kleaderboard`.
-- **Achievements:** Unlock badges for special milestones and show off your progress.
-- **Admin Tools:** Set up channels, control game intervals, and manage your server’s learning experience.
+It’s designed to be simple to set up and easy to run in community servers.
 
 ---
 
-## 🚀 Getting Started
+## What It Does
 
-1. **Set up your environment:**
-	- Copy `.env.example` to `.env` and fill in your `TOKEN` and `CLIENT_ID`. (Optional: set `GUILD_ID` for faster command registration.)
-2. **Install dependencies:**
-	```bash
-	npm install
-	```
-3. **Register slash commands:**
-	```bash
-	npm run deploy-commands
-	```
-4. **Start the bot:**
-	```bash
-	npm start
-	```
+### Daily Word Game
+Posts Korean words automatically in a chosen channel.  
+Users can:
+- Answer in chat
+- Earn XP and coins
+- Build streaks
+- Level up over time
+
+You control how often words are posted and where they go.
 
 ---
 
-## 📝 Main Commands
+### Mini-Games
 
-- `/kminigame` — Picture guessing game
-- `/kflagminigame` — Flag guessing game (multi-round, lobby, scoring)
-- `/kstart` — Enable daily word game
-- `/kstop` — Disable daily word game
-- `/kinterval <minutes>` — Set word post frequency
-- `/ksetchannel <channel>` — Set channel for word posts
-- `/ksetlevelchannel <channel>` — Set channel for level-up pings
-- `/ksend` — Force send a word now
-- `/kprofile view|edit` — View or edit your profile
-- `/kwallet` — See your coins and items
-- `/kleaderboard` — Top users by XP
-- `/kshop` — Buy items with coins
-- `/kstreak` — View your current streak
-- `/kword add|list|import|export` — Manage the word bank (admin)
-- `/kinfo` — Info about the bot
+**`/kminigame`**  
+Guess the Korean word based on an image.
+
+**`/kflagminigame`**  
+Multi-round flag guessing game:
+- Lobby system
+- Adjustable rounds and answer time
+- Placement-based scoring
+- Results summary at the end
 
 ---
 
-## 🔒 Safety & Privacy
+### Economy & Progression
 
-- **Keep your secrets safe!** Your `.env`, database, and user data are protected by the included `.gitignore`.
-- Please don’t share your bot token or sensitive files publicly.
+- XP and leveling system  
+- Coins for correct answers  
+- Shop with usable items (hints, streak freezes, etc.)  
+- Profiles and leaderboards  
+- Achievement tracking  
+
+Core commands:
+- `/kprofile`
+- `/kleaderboard`
+- `/kwallet`
+- `/kshop`
+- `/kstreak`
 
 ---
 
-## ℹ️ Extra Notes
+### Admin Controls
 
-- The bot needs the `Guild Members` intent enabled in the Discord Developer Portal to track join events.
-- Per-server settings are saved in `storage/configs.json`.
-- The database is in `storage/game.db` (SQLite).
-- For help, bug reports, or to say hi, contact bomberrie (744828801153892382) on Discord.
+Server admins can:
+
+- `/kstart` — Enable daily word posting  
+- `/kstop` — Disable it  
+- `/kinterval <minutes>` — Set posting frequency  
+- `/ksetchannel <channel>` — Set word channel  
+- `/ksetlevelchannel <channel>` — Set level-up channel  
+- `/kword add|list|import|export` — Manage word bank  
 
 ---
 
-Thanks for checking out Yume. Have fun, make friends, and happy Korean learning! 🇰🇷✨
+## Setup
+
+1. Copy `.env.example` to `.env`
+2. Fill in:
+   - `TOKEN`
+   - `CLIENT_ID`
+   - (Optional) `GUILD_ID` for faster local testing
+
+3. Install dependencies:
+
+```bash
+npm install
+```
+
+4. Register commands:
+
+```bash
+npm run deploy-commands
+```
+
+5. Start the bot:
+
+```bash
+npm start
+```
+
+---
+
+## Storage
+
+- Per-server config: `storage/configs.json`
+- SQLite database: `storage/game.db`
+
+Make sure these files are not committed publicly.
+
+---
+
+## Requirements
+
+- Node.js 18+
+- `Guild Members` intent enabled in the Discord Developer Portal
+
+---
+
+## Notes
+
+- Designed for community servers.
+- Not intended for massive-scale deployment without modification.
+- Uses SQLite for simplicity.
+- Keep your bot token private.
+
+---
+
+If you run into issues or want to contribute, feel free to reach out.
