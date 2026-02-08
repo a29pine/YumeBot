@@ -108,6 +108,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 client.on('messageCreate', async (message) => {
   try {
+    // Mini-game answer check
+    if (global.kMiniGameAnswers && message.channel && global.kMiniGameAnswers[message.channel.id]) {
+      const mini = global.kMiniGameAnswers[message.channel.id];
+      if (!message.author.bot && message.content && message.content.toLowerCase().trim() === mini.answer) {
+        // Correct answer
+        delete global.kMiniGameAnswers[message.channel.id];
+        await message.reply({ content: `🎉 Correct! ${message.author} guessed the word!`, allowedMentions: { repliedUser: false } });
+        // Optionally, add stats or rewards here
+        return;
+      }
+    }
     await gameService.handleMessage(message);
   } catch (e) {
     console.error('message handler error', e);

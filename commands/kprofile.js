@@ -51,6 +51,22 @@ export default {
           return '▰'.repeat(full) + '▱'.repeat(empty) + ` ${Math.round(p*100)}%`;
         })(progress);
 
+        // Display badges
+        let badges = [];
+        try { badges = JSON.parse(row.badges || '[]'); } catch {}
+        if (badges.length > 0) {
+          const badgeEmojis = badges.map(b => {
+            const badge = {
+              fast_thinker: '⏱️',
+              slang_king: '🗣️',
+              night_owl: '🌙',
+              unstoppable: '9️⃣'
+            }[b] || '🏅';
+            return badge;
+          }).join(' ');
+          embed.addFields({ name: 'Achievements', value: badgeEmojis });
+        }
+
         const embed = new EmbedBuilder()
           .setTitle(`${user.username}'s Korean Profile`)
           .setAuthor({ name: user.tag, iconURL: user.displayAvatarURL({ extension: 'png', size: 128 }) })

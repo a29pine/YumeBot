@@ -1,3 +1,24 @@
+// --- Flag Mini-Game Lobby/Join Handler ---
+export async function handleFlagMiniGameButton(interaction) {
+  if (!interaction.isButton()) return false;
+  const id = interaction.customId;
+  if (id !== 'join_flag_lobby') return false;
+  const channelId = interaction.channel.id;
+  if (!global.kFlagLobbies || !global.kFlagLobbies[channelId]) {
+    return await interaction.reply({ content: 'This lobby is no longer active.', ephemeral: true });
+  }
+  const lobby = global.kFlagLobbies[channelId];
+  if (lobby.inProgress) {
+    return await interaction.reply({ content: 'The game has already started!', ephemeral: true });
+  }
+  if (lobby.players.has(interaction.user.id)) {
+    return await interaction.reply({ content: 'You have already joined the lobby.', ephemeral: true });
+  }
+  lobby.players.add(interaction.user.id);
+  await interaction.reply({ content: `You joined the flag mini-game lobby!`, ephemeral: true });
+  // Optionally update the lobby message with the current player count (not implemented here)
+  return true;
+}
 
 import db from '../db/sqlite.js';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
@@ -447,6 +468,8 @@ export async function getProfile(guildId, userId) {
 
 export async function handleComponentInteraction(interaction) {
   try {
+    // Flag Mini-Game join button
+    if (await handleFlagMiniGameButton(interaction)) return true;
     if (!interaction.isButton()) return false;
     const id = interaction.customId || '';
     // Multiple choice answer button: mcq_<guildId>_<correctId>_<index>_<korean>

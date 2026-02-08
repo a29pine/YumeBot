@@ -40,6 +40,8 @@ const commands = [
   kwallet.data.toJSON(),
   kshop.data.toJSON(),
   kinfo.data.toJSON(),
+  (await import('./commands/kminigame.js')).default.data.toJSON(),
+  (await import('./commands/kflagminigame.js')).default.data.toJSON(),
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);

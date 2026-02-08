@@ -47,6 +47,59 @@ dist-ssr/
 .env
 .env.*
 
+# Discord/Node bot security
+token.txt
+auth.json
+*.secret
+*.secrets
+*.envrc
+.envrc
+.npmrc
+.yarnrc
+.pnp.*
+
+# Discord bot tokens/configs
+config.json
+config.js
+config.ts
+tokens.json
+tokens.js
+tokens.ts
+credentials.json
+credentials.js
+credentials.ts
+
+# Sensitive user data
+user_data/
+userdata/
+private/
+backup/
+backups/
+export/
+exports/
+
+# Prevent accidental upload of images or media
+images/
+media/
+screenshots/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.mp4
+*.mov
+*.avi
+*.mkv
+
+# Prevent IDE/project files
+.idea/
+.vscode/
+.history/
+.DS_Store
+Thumbs.db
+*~
+
 # Database files
 storage/*.db
 storage/*.sqlite
