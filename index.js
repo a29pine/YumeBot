@@ -193,14 +193,34 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 client.on('messageCreate', async (message) => {
   try {
-    // Mini-game answer check
-    if (global.kMiniGameAnswers && message.channel && global.kMiniGameAnswers[message.channel.id]) {
-      const mini = global.kMiniGameAnswers[message.channel.id];
-      if (!message.author.bot && message.content && message.content.toLowerCase().trim() === mini.answer) {
-        // Correct answer
-        delete global.kMiniGameAnswers[message.channel.id];
-        await message.reply({ content: `🎉 Correct! ${message.author} guessed the word!`, allowedMentions: { repliedUser: false } });
-        // Optionally, add stats or rewards here
+    // Mini-game answer check (session-based)
+    const { getSession, clearSession } = await import('./services/kminigameSessions.js');
+    const db = (await import('./db/sqlite.js')).default;
+    if (message.channel) {
+      const session = getSession(message.channel.id);
+      if (session && !message.author.bot && message.content && message.content.toLowerCase().trim() === session.answer) {
+        // End minigame session
+        clearSession(message.channel.id);
+        // Award XP
+        const guildId = message.guildId || (message.guild && message.guild.id) || 'global';
+        const userId = message.author.id;
+        const baseXp = 20;
+        const now = Date.now();
+        // Fetch user row
+        let userRow = db.prepare('SELECT * FROM users WHERE guild_id = ? AND user_id = ?').get(guildId, userId);
+        let newXp = baseXp, newLevel = 1, newStreak = 1, newTotal = 1;
+        if (userRow) {
+          newXp = (userRow.xp || 0) + baseXp;
+          newStreak = (userRow.last_correct_at && (now - userRow.last_correct_at) < 24*60*60*1000) ? (userRow.streak || 0) + 1 : 1;
+          newTotal = (userRow.total_correct || 0) + 1;
+          newLevel = Math.floor(newXp / 100) || 1;
+          db.prepare('UPDATE users SET xp = ?, level = ?, streak = ?, total_correct = ?, last_correct_at = ? WHERE guild_id = ? AND user_id = ?')
+            .run(newXp, newLevel, newStreak, newTotal, now, guildId, userId);
+        } else {
+          db.prepare('INSERT INTO users (guild_id, user_id, xp, level, streak, total_correct, last_correct_at) VALUES (?,?,?,?,?,?,?)')
+            .run(guildId, userId, newXp, newLevel, newStreak, newTotal, now);
+        }
+        await message.reply({ content: `🎉 Correct! ${message.author} guessed the word and earned **${baseXp} XP**!`, allowedMentions: { repliedUser: false } });
         return;
       }
     }
