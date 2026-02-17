@@ -98,6 +98,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         let field = '', value = '';
         if (interaction.customId === 'modal_edit_bio') {
           value = interaction.fields.getTextInputValue('bio_input');
+          value = String(value || '').slice(0, 1024);
           db.prepare('UPDATE users SET bio = ? WHERE guild_id = ? AND user_id = ?').run(value, gid, uid);
           field = 'Bio';
           updated = true;
@@ -109,6 +110,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
           updated = true;
         } else if (interaction.customId === 'modal_edit_banner') {
           value = interaction.fields.getTextInputValue('banner_input');
+          const url = String(value || '').trim();
+          const isValid = /^https?:\/\/.+/.test(url) && url.length <= 256;
+          if (!isValid) {
+            await interaction.reply({ content: '❌ Invalid banner URL. Please use an http(s) link under 256 characters.', ephemeral: true });
+            return;
+          }
           db.prepare('UPDATE users SET profile_banner = ? WHERE guild_id = ? AND user_id = ?').run(value, gid, uid);
           field = 'Banner URL';
           updated = true;
@@ -132,12 +139,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
           updated = true;
         } else if (interaction.customId === 'modal_edit_badge') {
           value = interaction.fields.getTextInputValue('badge_input');
+          value = String(value || '').slice(0, 20);
           // Accept any emoji or string
           db.prepare('UPDATE users SET profile_badge = ? WHERE guild_id = ? AND user_id = ?').run(value, gid, uid);
           field = 'Badge';
           updated = true;
         } else if (interaction.customId === 'modal_edit_social') {
           value = interaction.fields.getTextInputValue('social_input');
+          value = String(value || '').trim().slice(0, 100);
           db.prepare('UPDATE users SET profile_social = ? WHERE guild_id = ? AND user_id = ?').run(value, gid, uid);
           field = 'Social Link';
           updated = true;

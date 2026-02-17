@@ -10,6 +10,10 @@ export const data = new SlashCommandBuilder()
 export default {
   data,
   async execute(interaction) {
+    if (!interaction.inGuild()) {
+      await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+      return;
+    }
     const giverId = interaction.user.id;
     const receiver = interaction.options.getUser('user');
     const receiverId = receiver.id;
@@ -19,8 +23,8 @@ export default {
     if (receiverId === giverId) {
       return interaction.reply({ content: 'You cannot give coins to yourself.', ephemeral: true });
     }
-    if (amount <= 0) {
-      return interaction.reply({ content: 'Amount must be greater than zero.', ephemeral: true });
+    if (amount <= 0 || amount > 100000) {
+      return interaction.reply({ content: 'Amount must be between 1 and 100000 coins.', ephemeral: true });
     }
     const giver = db.prepare('SELECT coins FROM users WHERE guild_id = ? AND user_id = ?').get(guildId, giverId);
     if (!giver || (giver.coins || 0) < amount) {

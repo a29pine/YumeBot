@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } from 'discord.js';
 
 
 // ISO 3166-1 alpha-2 country codes and Korean names
@@ -53,6 +53,14 @@ function getSettingsButtons(rounds, answerTime) {
   ];
 }
 async function execute(interaction) {
+  if (!interaction.inGuild()) {
+    await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+    return;
+  }
+  if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+    await interaction.reply({ content: 'You need the Manage Server permission to start this mini-game.', ephemeral: true });
+    return;
+  }
   // --- Settings phase ---
   let rounds = interaction.options.getInteger('rounds', true);
   let answerTime = 12;
@@ -122,92 +130,94 @@ async function execute(interaction) {
     }
     for (const id of playerIds) lobby.scores[id] = 0;
     const usedFlags = new Set();
-    for (let round = 1; round <= lobby.totalRounds; round++) {
-      let flagCode;
-      let tries = 0;
-      do {
-        flagCode = COUNTRY_CODES[Math.floor(Math.random() * COUNTRY_CODES.length)];
-        tries++;
-      } while (usedFlags.has(flagCode) && tries < 10 * COUNTRY_CODES.length);
-      usedFlags.add(flagCode);
-      const flagUrl = `https://flagcdn.com/w320/${flagCode}.png`;
-      const answer = COUNTRY_KR[flagCode];
-      lobby.currentFlag = { code: flagCode, answer };
-      lobby.answers = {};
-      const embed = new EmbedBuilder()
-        .setTitle(`🏳️‍🌈 Round ${round} / ${lobby.totalRounds}`)
-        .setDescription('What is the Korean name of this country? Type your answer in chat!')
-        .setImage(flagUrl)
-        .setColor('#00B4D8')
-        .setFooter({ text: `You have ${lobby.answerTime} seconds to answer!` });
-      await interaction.channel.send({ embeds: [embed] });
-      const filter = m => !m.author.bot && lobby.players.has(m.author.id);
-      const collected = await interaction.channel.awaitMessages({ filter, time: lobby.answerTime * 1000 });
-      // Placement scoring: first correct gets N points, second N-1, etc.
-      const placements = [];
-      const alreadyAnswered = new Set();
-      for (const msg of collected.values()) {
-        const userId = msg.author.id;
-        const isCorrect = msg.content.trim() === answer;
-        if (alreadyAnswered.has(userId)) continue;
-        if (isCorrect) {
-          await msg.react('✅');
-          placements.push(userId);
-          alreadyAnswered.add(userId);
-        } else {
-          await msg.react('❌');
+    try {
+      for (let round = 1; round <= lobby.totalRounds; round++) {
+        let flagCode;
+        let tries = 0;
+        do {
+          flagCode = COUNTRY_CODES[Math.floor(Math.random() * COUNTRY_CODES.length)];
+          tries++;
+        } while (usedFlags.has(flagCode) && tries < 10 * COUNTRY_CODES.length);
+        usedFlags.add(flagCode);
+        const flagUrl = `https://flagcdn.com/w320/${flagCode}.png`;
+        const answer = COUNTRY_KR[flagCode];
+        lobby.currentFlag = { code: flagCode, answer };
+        lobby.answers = {};
+        const embed = new EmbedBuilder()
+          .setTitle(`🏳️‍🌈 Round ${round} / ${lobby.totalRounds}`)
+          .setDescription('What is the Korean name of this country? Type your answer in chat!')
+          .setImage(flagUrl)
+          .setColor('#00B4D8')
+          .setFooter({ text: `You have ${lobby.answerTime} seconds to answer!` });
+        await interaction.channel.send({ embeds: [embed] });
+        const filter = m => !m.author.bot && lobby.players.has(m.author.id);
+        const maxMessages = Math.max(20, playerIds.length * 5);
+        const collected = await interaction.channel.awaitMessages({ filter, time: lobby.answerTime * 1000, max: maxMessages }).catch(() => null) || new Map();
+        const placements = [];
+        const alreadyAnswered = new Set();
+        for (const msg of collected.values()) {
+          const userId = msg.author.id;
+          const isCorrect = msg.content.trim() === answer;
+          if (alreadyAnswered.has(userId)) continue;
+          if (isCorrect) {
+            await msg.react('✅');
+            placements.push(userId);
+            alreadyAnswered.add(userId);
+          } else {
+            await msg.react('❌');
+          }
+        }
+        for (let i = 0; i < placements.length; i++) {
+          const userId = placements[i];
+          const points = Math.max(1, playerIds.length - i);
+          lobby.scores[userId] = (lobby.scores[userId] || 0) + points;
+          const msg = collected.find(m => m.author.id === userId && m.content.trim() === answer);
+          if (msg) {
+            await msg.reply({ content: `🎉 **Correct!** +${points} point${points > 1 ? 's' : ''} for ${msg.author}`, allowedMentions: { users: [msg.author.id] } });
+          }
+        }
+        if (placements.length === 0) {
+          await interaction.channel.send({ content: `⏰ Time's up! The correct answer was **${answer}**.` });
+        }
+        await new Promise(res => setTimeout(res, 1200));
+      }
+    } catch (err) {
+      console.error('kflagminigame loop error', err);
+    } finally {
+      const maxScore = Math.max(...Object.values(lobby.scores));
+      const winners = Object.entries(lobby.scores).filter(([id, score]) => score === maxScore).map(([id]) => id);
+      const winnerMentions = winners.map(id => `<@${id}>`).join(', ');
+      const userNames = {};
+      for (const id of playerIds) {
+        try {
+          const user = await interaction.client.users.fetch(id);
+          userNames[id] = user ? user.username : id;
+        } catch {
+          userNames[id] = id;
         }
       }
-      // Award points by placement
-      for (let i = 0; i < placements.length; i++) {
-        const userId = placements[i];
-        const points = Math.max(1, playerIds.length - i);
-        lobby.scores[userId] = (lobby.scores[userId] || 0) + points;
-        const msg = collected.find(m => m.author.id === userId && m.content.trim() === answer);
-        if (msg) {
-          await msg.reply({ content: `🎉 **Correct!** +${points} point${points > 1 ? 's' : ''} for ${msg.author}`, allowedMentions: { users: [msg.author.id] } });
-        }
+      const fields = playerIds.map(id => ({
+        name: `🏅 ${userNames[id]}`,
+        value: `**${lobby.scores[id]}** point${lobby.scores[id] === 1 ? '' : 's'}`,
+        inline: true
+      }));
+      let desc = '';
+      if (winners.length > 0 && maxScore > 0) {
+        desc = `🥇 Winner${winners.length > 1 ? 's' : ''}: ${winnerMentions} (+300 XP)`;
+      } else {
+        desc = 'No winners this time. Better luck next game!';
       }
-      if (placements.length === 0) {
-        await interaction.channel.send({ content: `⏰ Time's up! The correct answer was **${answer}**.` });
-      }
-      await new Promise(res => setTimeout(res, 1200));
+      const resultEmbed = new EmbedBuilder()
+        .setTitle('🏁 Flag Mini-Game Results')
+        .setDescription(desc)
+        .addFields(fields)
+        .setColor('#FFD700')
+        .setThumbnail('https://flagcdn.com/w320/kr.png')
+        .setFooter({ text: `Thanks for playing! Hosted by ${interaction.user.username}` })
+        .setTimestamp();
+      try { await interaction.channel.send({ embeds: [resultEmbed] }); } catch {}
+      delete global.kFlagLobbies[channelId];
     }
-    // --- Beautiful Game Over Embed ---
-    const maxScore = Math.max(...Object.values(lobby.scores));
-    const winners = Object.entries(lobby.scores).filter(([id, score]) => score === maxScore).map(([id]) => id);
-    const winnerMentions = winners.map(id => `<@${id}>`).join(', ');
-    // Fetch usernames for all player IDs
-    const userNames = {};
-    for (const id of playerIds) {
-      try {
-        const user = await interaction.client.users.fetch(id);
-        userNames[id] = user ? user.username : id;
-      } catch {
-        userNames[id] = id;
-      }
-    }
-    const fields = playerIds.map(id => ({
-      name: `🏅 ${userNames[id]}`,
-      value: `**${lobby.scores[id]}** point${lobby.scores[id] === 1 ? '' : 's'}`,
-      inline: true
-    }));
-    let desc = '';
-    if (winners.length > 0 && maxScore > 0) {
-      desc = `🥇 Winner${winners.length > 1 ? 's' : ''}: ${winnerMentions} (+300 XP)`;
-    } else {
-      desc = 'No winners this time. Better luck next game!';
-    }
-    const resultEmbed = new EmbedBuilder()
-      .setTitle('🏁 Flag Mini-Game Results')
-      .setDescription(desc)
-      .addFields(fields)
-      .setColor('#FFD700')
-      .setThumbnail('https://flagcdn.com/w320/kr.png')
-      .setFooter({ text: `Thanks for playing! Hosted by ${interaction.user.username}` })
-      .setTimestamp();
-    await interaction.channel.send({ embeds: [resultEmbed] });
-    delete global.kFlagLobbies[channelId];
   }, 15000);
 }
 

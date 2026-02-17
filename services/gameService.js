@@ -178,7 +178,7 @@ export async function postQuestion(client, guildId) {
       try {
         const q = db.prepare('SELECT * FROM active_questions WHERE guild_id = ?').get(guildId);
         if (q && q.solved === 0) {
-          db.prepare('UPDATE active_questions SET solved = 1 WHERE guild_id = ?').run(guildId);
+          db.prepare('DELETE FROM active_questions WHERE guild_id = ?').run(guildId);
           await channel.send({ content: `⏰ Time's up! The correct answer was **${word.english}**.` });
         }
       } catch (e) {
@@ -298,9 +298,9 @@ export async function handleMessage(message) {
     }
 
     if (isAnswerCorrect(message.content, word.english, aliases)) {
-      // mark solved
+      // mark solved and clean row
       const now = Date.now();
-      db.prepare('UPDATE active_questions SET solved = 1, correct_user_id = ? WHERE guild_id = ?').run(message.author.id, guildId);
+      db.prepare('DELETE FROM active_questions WHERE guild_id = ?').run(guildId);
 
       // calculate xp
       const elapsed = Math.floor((now - active.started_at) / 1000);
@@ -485,8 +485,8 @@ export async function handleComponentInteraction(interaction) {
       if (!word) return await interaction.reply({ content: 'No word found for this question.', ephemeral: true });
       // Check if this is the correct answer
       if (String(word.korean) === label) {
-        // mark solved
-        db.prepare('UPDATE active_questions SET solved = 1, correct_user_id = ? WHERE guild_id = ?').run(interaction.user.id, guildId);
+        // mark solved and clean row
+        db.prepare('DELETE FROM active_questions WHERE guild_id = ?').run(guildId);
         // award XP
         const now = Date.now();
         const elapsed = Math.floor((now - active.started_at) / 1000);
@@ -596,7 +596,7 @@ export async function handleComponentInteraction(interaction) {
       const active = db.prepare('SELECT * FROM active_questions WHERE guild_id = ?').get(guildId);
       if (!active) return await interaction.reply({ content: 'No active question to skip.', ephemeral: true });
       // mark as solved/skipped
-      db.prepare('UPDATE active_questions SET solved = 1 WHERE guild_id = ?').run(guildId);
+      db.prepare('DELETE FROM active_questions WHERE guild_id = ?').run(guildId);
       await interaction.reply({ content: 'Question skipped. Posting next word... (Skip Token used)', ephemeral: true });
       // post next question
       try { await postQuestion(interaction.client, guildId); } catch (e) { console.error('Failed to post after skip', e); }
